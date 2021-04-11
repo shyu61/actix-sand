@@ -1,4 +1,5 @@
-use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
+use actix_files;
+use actix_web::{web, App, HttpResponse, HttpServer, Responder, Result};
 
 async fn index() -> Result<actix_files::NamedFile> {
     Ok(actix_files::NamedFile::open("target/public/index.html")?)
