@@ -1,6 +1,38 @@
 use actix_files;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder, Result};
-use serde::{Serialize};
+use serde::{Serialize, Deserialize};
+use rusoto_core::{Region, credential::{DefaultCredentialsProvider, ProvideAwsCredentials}};
+use rusoto_s3::{PutObjectRequest, util::PreSignedRequest};
+use dotenv::dotenv;
+use std::env;
+
+#[derive(Deserialize, Clone)]
+struct UploadRequeset {
+    file_name: String,
+}
+
+async fn get_s3_presign(params: web::Json<UploadRequeset>) -> impl Responder {
+    dotenv().ok();
+    
+    let bucket = env::var("BUCKET").expect("BUCKET is not found");
+    let region = Region::ApNortheast1;
+    let req = PutObjectRequest {
+        bucket: bucket,
+        key: params.file_name.clone(),
+        ..Default::default()
+    };
+    let credentials = DefaultCredentialsProvider::new()
+            .unwrap()
+            .credentials()
+            .await
+            .unwrap();
+    
+    let signed_url = req.get_presigned_url(&region, &credentials, &Default::default());
+    let response = serde_json::to_string(&signed_url).unwrap();
+    HttpResponse::Ok()
+        .content_type("application/json")
+        .body(response)
+}
 
 async fn index() -> Result<actix_files::NamedFile> {
     Ok(actix_files::NamedFile::open("target/public/index.html")?)
@@ -56,7 +88,8 @@ async fn main() -> std::io::Result<()> {
         .service(
             web::scope("/api")
                 .route("/first", web::get().to(first))
-                .route("/second", web::get().to(second)),
+                .route("/second", web::get().to(second))
+                .route("/upload", web::post().to(get_s3_presign)),
         )
         .service(actix_files::Files::new("", "target/public"))
         .default_service(web::route().to(index))
