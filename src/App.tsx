@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { request } from './hooks';
+import { Upload } from './component/upload';
 
 type SecondData = {
   list: {
@@ -40,6 +41,7 @@ function App() {
       {firstData.map(item => <p>{item}</p>)}
       <h2>Second Data</h2>
       {secondData['list'].map(item => <p>Id: {item.id}, Name: {item.name}</p>)}
+      <Upload />
     </div>
   );
 }
