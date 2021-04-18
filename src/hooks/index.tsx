@@ -2,23 +2,30 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 type ErrorResult = {
   response: {
-    code: number;
+    status: number;
   }
 }
 
 export async function request<RES>({
   method,
   path,
-  body
+  body,
+  customHeaders
 }: {
   method: Method;
   path: string;
-  body?: FormData;
+  body?: any; // rustサーバーに対してはformDataを使用しない
+  customHeaders?: Headers;
 }): Promise<RES> {
   const headers = new Headers({
     Accept: 'application/json',
-    ...(body !== undefined ? {} : { 'ContentType': 'application/json' }),
+    'Content-Type': 'application/json',
   });
+  if (customHeaders !== undefined) {
+    for (const pair of customHeaders.entries()) {
+      headers.set(pair[0], pair[1]);
+    }
+  }
 
   const res = await fetch(path, {
     method,
@@ -27,8 +34,9 @@ export async function request<RES>({
   }).catch(e => {
     console.error(e);
     // eslint-disable-next-line no-throw-literal
-    throw { response: { code: 0 } } as ErrorResult;
+    throw { response: { status: 0 } } as ErrorResult;
   })
 
-  return res.json();
+  const parsedText = await res.text();
+  return parsedText ? JSON.parse(parsedText) : parsedText
 }

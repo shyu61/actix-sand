@@ -1,27 +1,35 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone'
 import styled from 'styled-components';
 import { request } from '../hooks';
 
 export const Upload = () => {
-  const [signedUrl, setSignedUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
-  const onDrop = async (files: File[]) => {
-    const body = new FormData();
-    body.set('fileName', files[0].name);
-    body.set('fileType', files[0].type);
+  const accept = ['image/*', 'video/*'] // TODO: 'image/*'を削除する
+  const onDrop = useCallback(async (files: File[]) => {
+    setIsUploading(true);
+    const body = { file_name: files[0].name }
 
-    const res = await request<string>(
-      {
+    const signedUrl = await request<string>({
         method: 'POST',
-        path: '/upload',
-        body: body,
-      }
-    )
-    setSignedUrl(res);
-  };
+        path: '/api/upload',
+        body: JSON.stringify(body),
+    });
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+    const formData = new FormData();
+    formData.set('file', files[0]);
+    await request<string>({
+      method: 'PUT',
+      path: signedUrl,
+      body: formData,
+      customHeaders: new Headers({ 'Content-Type': files[0].type })
+    });
+
+    setIsUploading(false);
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ accept, onDrop });
 
   return (
     <StyledContainer {...getRootProps()}>
@@ -32,6 +40,7 @@ export const Upload = () => {
           <p>Drag 'n' drop some files here, or click to select files</p>
         )
       }
+      {isUploading && <p>アップロード中</p>}
     </StyledContainer>
   )
 }
