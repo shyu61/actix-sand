@@ -1,10 +1,11 @@
 use actix_files;
-use actix_web::{web, App, HttpResponse, HttpServer, Responder, Result};
+use actix_web::{web, App, HttpResponse, HttpServer, Responder, Result, http::header, middleware::Logger};
 use serde::{Serialize, Deserialize};
 use rusoto_core::{Region, credential::{DefaultCredentialsProvider, ProvideAwsCredentials}};
 use rusoto_s3::{PutObjectRequest, util::PreSignedRequest};
 use dotenv::dotenv;
 use std::env;
+use actix_cors::Cors;
 
 #[derive(Deserialize, Clone)]
 struct UploadRequeset {
@@ -13,7 +14,7 @@ struct UploadRequeset {
 
 async fn get_s3_presign(params: web::Json<UploadRequeset>) -> impl Responder {
     dotenv().ok();
-    
+
     let bucket = env::var("BUCKET").expect("BUCKET is not found");
     let region = Region::ApNortheast1;
     let req = PutObjectRequest {
@@ -82,8 +83,23 @@ async fn second() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    std::env::set_var("RUST_LOG", "debug");
+    env_logger::init();
+
     HttpServer::new(|| {
+        let cors = Cors::default()
+            .allowed_origin_fn(|_origin, _req_head| {
+                true
+            })
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+            .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+            .allowed_header(header::CONTENT_TYPE)
+            .supports_credentials()
+            .max_age(3600);
+
         App::new()
+        .wrap(Logger::default())
+        .wrap(cors)
         .route("/", web::get().to(index))
         .service(
             web::scope("/api")
