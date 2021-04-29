@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
 import { request } from './hooks';
 import { Upload } from './component/upload';
+import styled from 'styled-components';
+import React, { useEffect, useState } from 'react';
 
 type SecondData = {
   list: {
@@ -36,14 +37,19 @@ function App() {
   }, []);
 
   return (
-    <div className="App">
+    <StyledContainer>
       <h2>First Data</h2>
       {firstData.map(item => <p>{item}</p>)}
       <h2>Second Data</h2>
       {secondData['list'].map(item => <p>Id: {item.id}, Name: {item.name}</p>)}
       <Upload />
-    </div>
+    </StyledContainer>
   );
 }
 
 export default App;
+
+const StyledContainer = styled.div`
+  text-align: center;
+  margin: 0 50px;
+`;
