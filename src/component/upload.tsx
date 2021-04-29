@@ -112,6 +112,7 @@ const StyledDataContainer = styled.div`
   width: 900px;
   height: 300px;
   margin: 5px auto;
+  padding: 8px;
   border: 1px solid darkgray;
   border-radius: 4px;
   overflow-y: auto;
