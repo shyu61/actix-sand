@@ -65,14 +65,11 @@ export const Upload = () => {
       path: `/api/transcription?key=${key}`,
     });
 
-    setTranscription(res);
-  }, [key]);
+    const obj: TranscriptedData = JSON.parse(res);
+    const convertedData = obj.results.transcripts[0].transcript;
 
-  const convertData = (data: string): string => {
-    const obj: TranscriptedData = JSON.parse(data);
-    const res = obj.results.transcripts[0].transcript;
-    return res.replace(/\s+/g, "");
-  }
+    setTranscription(convertedData.replace(/\s+/g, ''));
+  }, [key]);
 
   return (
     <>
@@ -82,9 +79,9 @@ export const Upload = () => {
         {isUploading && <p>アップロード中</p>}
       </StyledContainer>
       <div>
-        <p>s3_key: {key}</p>
+        <p>ファイル名: {key.replace(/input\//,'')}</p>
         <StyledDataContainer>
-          {transcription !== '' && convertData(transcription)}
+          {transcription}
         </StyledDataContainer>
         <button onClick={handleFetchTranscription}>更新</button>
       </div>
@@ -114,8 +111,9 @@ const StyledDropArea = styled.span<{ isActive: boolean }>`
 const StyledDataContainer = styled.div`
   width: 900px;
   height: 300px;
-  margin: 0 auto;
+  margin: 5px auto;
   border: 1px solid darkgray;
   border-radius: 4px;
   overflow-y: auto;
+  text-align: left;
 `;
