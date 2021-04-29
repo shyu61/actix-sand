@@ -64,8 +64,7 @@ async fn get_transcription(info: web::Query<GetTranscriptionRequest>) -> impl Re
     let real_real_key = ext.replace(&real_key, ".txt").into_owned();
     let req = GetObjectRequest {
         bucket: bucket,
-        // key: real_real_key,
-        key: "output/sample.txt".to_string(),
+        key: real_real_key,
         ..Default::default()
     };
     let client = S3Client::new(region);
