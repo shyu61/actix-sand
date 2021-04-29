@@ -1,4 +1,4 @@
-use actix_files;
+use actix_files::NamedFile;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder, Result, http::header, middleware::Logger};
 use serde::{Serialize, Deserialize};
 use rusoto_core::{Region, credential::{DefaultCredentialsProvider, ProvideAwsCredentials}};
@@ -8,7 +8,7 @@ use std::env;
 use actix_cors::Cors;
 use log::{info, warn};
 use regex::Regex;
-use bytes;
+use bytes::BytesMut;
 use futures::stream::TryStreamExt;
 
 #[derive(Deserialize, Clone)]
@@ -29,7 +29,7 @@ async fn get_s3_presign(params: web::Json<UploadRequeset>) -> impl Responder {
     let region = Region::ApNortheast1;
     let key = format!("input/{}", params.file_name.clone());
     let req = PutObjectRequest {
-        bucket: bucket,
+        bucket,
         key: key.clone(),
         ..Default::default()
     };
@@ -40,7 +40,7 @@ async fn get_s3_presign(params: web::Json<UploadRequeset>) -> impl Responder {
             .unwrap();
     
     let signed_url = req.get_presigned_url(&region, &credentials, &Default::default());
-    let response = serde_json::to_string(&UploadResponse { signed_url: signed_url, key: key }).unwrap();
+    let response = serde_json::to_string(&UploadResponse { signed_url, key }).unwrap();
     info!("debug! response: {}", response);
     HttpResponse::Ok()
         .content_type("application/json")
@@ -58,12 +58,11 @@ async fn get_transcription(info: web::Query<GetTranscriptionRequest>) -> impl Re
     let bucket = env::var("BUCKET").expect("BUCKET is not found");
     let region = Region::ApNortheast1;
     let key = info.key.clone();
-    let dir = Regex::new(r"input").unwrap();
     let ext = Regex::new(r"\..+$").unwrap();
-    let real_key = dir.replace(&key, "output");
+    let real_key = key.replace("input", "output");
     let real_real_key = ext.replace(&real_key, ".txt").into_owned();
     let req = GetObjectRequest {
-        bucket: bucket,
+        bucket,
         key: real_real_key,
         ..Default::default()
     };
@@ -71,7 +70,7 @@ async fn get_transcription(info: web::Query<GetTranscriptionRequest>) -> impl Re
     let result = client.get_object(req).await.expect("Cloudn't GET object");
 
     let stream = result.body.unwrap();
-    let body = stream.map_ok(|b| bytes::BytesMut::from(&b[..])).try_concat().await.unwrap();
+    let body = stream.map_ok(|b| BytesMut::from(&b[..])).try_concat().await.unwrap();
 
     // async_readしたい場合
     // use tokio::io::AsyncReadExt;
@@ -88,8 +87,8 @@ async fn get_transcription(info: web::Query<GetTranscriptionRequest>) -> impl Re
         .body(response)
 }
 
-async fn index() -> Result<actix_files::NamedFile> {
-    Ok(actix_files::NamedFile::open("target/public/index.html")?)
+async fn index() -> Result<NamedFile> {
+    Ok(NamedFile::open("target/public/index.html")?)
 }
 
 #[actix_web::main]
