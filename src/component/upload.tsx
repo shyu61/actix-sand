@@ -30,7 +30,7 @@ type TranscriptedData = {
 
 export const Upload = () => {
   const [isUploading, setIsUploading] = useState(false);
-  const [key, setKey] = useState('input/sample.mp3');
+  const [key, setKey] = useState('input/sample.mp3'); // TODO: AWS Trascriptionの上限があるのでサンプルを表示
   const [transcription, setTranscription] = useState('');
 
   const accept = ['audio/*', 'video/*'];
